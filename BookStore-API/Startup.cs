@@ -12,9 +12,12 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net.Security;
 using System.Reflection;
 using System.Threading.Tasks;
+using AutoMapper;
 using BookStore_API.Contracts;
+using BookStore_API.Mapper;
 using BookStore_API.Services;
 using Microsoft.OpenApi.Models;
 
@@ -42,6 +45,8 @@ namespace BookStore_API
             {
                 o.AddPolicy("CorsPolicy", builder => builder.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());
             });
+
+            services.AddAutoMapper(typeof(Maps));
 
             services.AddSwaggerGen(c =>
             {

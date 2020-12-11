@@ -1,0 +1,9 @@
+﻿################################################################################
+# This .gitignore file was automatically created by Microsoft(R) Visual Studio.
+################################################################################
+
+/.vs/BookStore-API
+/.idea
+/BookStore-API/bin
+/BookStore-API/obj
+/BookStore-API.sln.DotSettings.user

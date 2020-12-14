@@ -7,7 +7,6 @@ using BookStore_API.Data;
 using BookStore_API.DTOs;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
 
 namespace BookStore_API.Controllers
 {
@@ -166,7 +165,7 @@ namespace BookStore_API.Controllers
                 }
 
                 var author = this.mapper.Map<Author>(authorDTO);
-                var isSuccess = await this.authorRepository.update(author);
+                var isSuccess = await this.authorRepository.Update(author);
 
                 if (!isSuccess)
                 {

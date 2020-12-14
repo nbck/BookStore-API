@@ -6,47 +6,47 @@ using Microsoft.EntityFrameworkCore;
 
 namespace BookStore_API.Services
 {
-    public class AuthorRepository : IAuthorRepository
+    public class BookRepository : IBookRepository
     {
         private readonly ApplicationDbContext db;
 
-        public AuthorRepository(ApplicationDbContext db)
+        public BookRepository(ApplicationDbContext db)
         {
             this.db = db;
         }
 
-        public async Task<IList<Author>> FindAll()
+        public async Task<IList<Book>> FindAll()
         {
-            var authors = await this.db.Authors.ToListAsync();
-            return authors;
+            var books = await this.db.Books.ToListAsync();
+            return books;
         }
 
-        public async Task<Author> FindById(int id)
+        public async Task<Book> FindById(int id)
         {
-            var author = await this.db.Authors.FindAsync(id).ConfigureAwait(false);
-            return author;
+            var book = await this.db.Books.FindAsync(id).ConfigureAwait(false);
+            return book;
         }
 
-        public async Task<bool> Create(Author entity)
+        public async Task<bool> Create(Book entity)
         {
-            await this.db.Authors.AddAsync(entity);
+            await this.db.Books.AddAsync(entity);
             return await this.Save().ConfigureAwait(false);
         }
 
         public async Task<bool> IsExists(int id)
         {
-            return await this.db.Authors.AnyAsync(q => q.Id == id);
+            return await this.db.Books.AnyAsync(q => q.Id == id);
         }
 
-        public async Task<bool> Update(Author entity)
+        public async Task<bool> Update(Book entity)
         {
-            this.db.Authors.Update(entity);
+            this.db.Books.Update(entity);
             return await this.Save().ConfigureAwait(false);
         }
 
-        public async Task<bool> Delete(Author entity)
+        public async Task<bool> Delete(Book entity)
         {
-            this.db.Authors.Remove(entity);
+            this.db.Books.Remove(entity);
             return await this.Save().ConfigureAwait(false);
         }
 

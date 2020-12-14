@@ -25,4 +25,9 @@
     <PackageReference Include="Swashbuckle.AspNetCore.SwaggerUI" Version="5.6.3" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Compile Remove="Data\ApplicationDbContext - Copy.cs" />
+    <Content Include="Data\ApplicationDbContext-Scaffolded.txt" />
+  </ItemGroup>
+
 </Project>

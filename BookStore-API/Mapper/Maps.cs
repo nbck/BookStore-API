@@ -4,16 +4,16 @@ using BookStore_API.DTOs;
 
 namespace BookStore_API.Mapper
 {
-    public class Maps:Profile
+    public class Maps : Profile
     {
         public Maps()
         {
-            CreateMap<Author, AuthorDTO>().ReverseMap();
-            CreateMap<Author, AuthorCreateDTO>().ReverseMap();
-            CreateMap<Author, AuthorUpdateDTO>().ReverseMap();
-            CreateMap<Book, BookDTO>().ReverseMap();
-            CreateMap<Book, BookCreateDTO>().ReverseMap();
-            CreateMap<Book, BookUpdateDTO>().ReverseMap();
+            this.CreateMap<Author, AuthorDTO>().ReverseMap();
+            this.CreateMap<Author, AuthorCreateDTO>().ReverseMap();
+            this.CreateMap<Author, AuthorUpdateDTO>().ReverseMap();
+            this.CreateMap<Book, BookDTO>().ReverseMap();
+            this.CreateMap<Book, BookCreateDTO>().ReverseMap();
+            this.CreateMap<Book, BookUpdateDTO>().ReverseMap();
         }
     }
 }

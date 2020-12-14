@@ -1,4 +1,13 @@
+using System;
+using System.IO;
+using System.Reflection;
+using System.Text;
+using AutoMapper;
+using BookStore_API.Contracts;
 using BookStore_API.Data;
+using BookStore_API.Mapper;
+using BookStore_API.Services;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
@@ -6,13 +15,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using System;
-using System.IO;
-using System.Reflection;
-using AutoMapper;
-using BookStore_API.Contracts;
-using BookStore_API.Mapper;
-using BookStore_API.Services;
+using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 
 namespace BookStore_API
@@ -21,7 +24,7 @@ namespace BookStore_API
     {
         public Startup(IConfiguration configuration)
         {
-            Configuration = configuration;
+            this.Configuration = configuration;
         }
 
         public IConfiguration Configuration { get; }
@@ -30,9 +33,9 @@ namespace BookStore_API
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddDbContext<ApplicationDbContext>(options =>
-                options.UseSqlServer(
-                    Configuration.GetConnectionString("DefaultConnection")));
-            services.AddDefaultIdentity<IdentityUser>(options => options.SignIn.RequireConfirmedAccount = true)
+                options.UseSqlServer(this.Configuration.GetConnectionString("DefaultConnection")));
+            services.AddDefaultIdentity<IdentityUser>()
+                .AddRoles<IdentityRole>()
                 .AddEntityFrameworkStores<ApplicationDbContext>();
 
             services.AddCors(o =>
@@ -42,16 +45,30 @@ namespace BookStore_API
 
             services.AddAutoMapper(typeof(Maps));
 
+            services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(o =>
+            {
+                o.TokenValidationParameters = new TokenValidationParameters
+                {
+                    ValidateIssuer = true,
+                    ValidateAudience = true,
+                    ValidateLifetime = true,
+                    ValidateIssuerSigningKey = true,
+                    ValidIssuer = this.Configuration["Jwt:Issuer"],
+                    ValidAudience = this.Configuration["Jwt:Issuer"],
+                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(this.Configuration["Jwt:Key"]))
+                };
+            });
+
             services.AddSwaggerGen(c =>
             {
-                c.SwaggerDoc("v1", new OpenApiInfo
-                {
-                    Title = "Book Store API", Version = "v1",
-                    Description = "This is an educational API for a Book Store"
-                });
+                c.SwaggerDoc("v1",
+                    new OpenApiInfo
+                    {
+                        Title = "Book Store API", Version = "v1", Description = "This is an educational API for a Book Store"
+                    });
 
-                var xfile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
-                var xpath = Path.Combine(AppContext.BaseDirectory, xfile);
+                string xfile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
+                string xpath = Path.Combine(AppContext.BaseDirectory, xfile);
                 c.IncludeXmlComments(xpath);
             });
 
@@ -63,7 +80,8 @@ namespace BookStore_API
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-        public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
+        public void Configure(IApplicationBuilder app, IWebHostEnvironment env, UserManager<IdentityUser> userManager,
+            RoleManager<IdentityRole> roleManager)
         {
             if (env.IsDevelopment())
             {
@@ -88,6 +106,8 @@ namespace BookStore_API
             app.UseHttpsRedirection();
 
             app.UseCors("CorsPolicy");
+
+            SeedData.Seed(userManager, roleManager).Wait();
 
             app.UseRouting();
 

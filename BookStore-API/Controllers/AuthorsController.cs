@@ -5,16 +5,18 @@ using AutoMapper;
 using BookStore_API.Contracts;
 using BookStore_API.Data;
 using BookStore_API.DTOs;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BookStore_API.Controllers
 {
     /// <summary>
-    /// Endpoint used to interact with the Authors in the book store's database
+    ///     Endpoint used to interact with the Authors in the book store's database
     /// </summary>
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public class AuthorsController : ControllerBase
     {
@@ -30,7 +32,7 @@ namespace BookStore_API.Controllers
         }
 
         /// <summary>
-        /// Gets all authors.
+        ///     Gets all authors.
         /// </summary>
         /// <returns>List of authors</returns>
         [HttpGet]
@@ -41,7 +43,7 @@ namespace BookStore_API.Controllers
             try
             {
                 this.logger.LogInfo("Attempted get all authors");
-                var authors = await this.authorRepository.FindAll();
+                IList<Author> authors = await this.authorRepository.FindAll();
                 var response = this.mapper.Map<IList<AuthorDTO>>(authors);
                 this.logger.LogInfo("Successfully got all authors");
                 return this.Ok(response);
@@ -49,25 +51,25 @@ namespace BookStore_API.Controllers
             catch (Exception e)
             {
                 this.logger.LogError($"An error occured: {e.Message} - {e.InnerException}\n{e.StackTrace}");
-                return StatusCode(500, $"Something went wrong. Please ....\n{e.Message}\n{e.StackTrace}");
+                return this.StatusCode(500, $"Something went wrong. Please ....\n{e.Message}\n{e.StackTrace}");
             }
         }
 
         /// <summary>
-        /// Gets an author by ID.
+        ///     Gets an author by ID.
         /// </summary>
         /// <param name="id">The ID of the author to get</param>
         /// <returns>An author's record</returns>
+        [HttpGet("{id}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        [HttpGet("{id}")]
         public async Task<IActionResult> GetAuthor(int id)
         {
             try
             {
                 this.logger.LogInfo($"Attempted to get author with id:{id}");
-                var author = await this.authorRepository.FindById(id);
+                Author author = await this.authorRepository.FindById(id);
                 if (author == null)
                 {
                     this.logger.LogWarn($"Author with id{id} was not found");
@@ -85,11 +87,12 @@ namespace BookStore_API.Controllers
         }
 
         /// <summary>
-        /// Creates an author
+        ///     Creates an author
         /// </summary>
         /// <param name="authorDTO"></param>
         /// <returns></returns>
         [HttpPost]
+        [Authorize(Roles = "Administrator")]
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
@@ -97,45 +100,46 @@ namespace BookStore_API.Controllers
         {
             try
             {
-                this.logger.LogInfo($"Author submission attempted");
-                
+                this.logger.LogInfo("Author submission attempted");
+
                 if (authorDTO == null)
                 {
-                    this.logger.LogWarn($"Empty request was submitted");
-                    return this.BadRequest(ModelState);
+                    this.logger.LogWarn("Empty request was submitted");
+                    return this.BadRequest(this.ModelState);
                 }
 
-                if (!ModelState.IsValid)
+                if (!this.ModelState.IsValid)
                 {
-                    this.logger.LogWarn($"Author data was incomplete");
-                    return this.BadRequest(ModelState);
+                    this.logger.LogWarn("Author data was incomplete");
+                    return this.BadRequest(this.ModelState);
                 }
 
                 var author = this.mapper.Map<Author>(authorDTO);
-                var isSuccess = await this.authorRepository.Create(author);
+                bool isSuccess = await this.authorRepository.Create(author);
 
                 if (!isSuccess)
                 {
-                    return InternalError($"Author creation failed");
+                    return this.InternalError("Author creation failed");
                 }
 
                 this.logger.LogInfo($"Author created successfully:{author.Firstname}, {author.Lastname}");
-                
-                return Created("Create", new {author});
+
+                return this.Created("Create", new {author});
             }
             catch (Exception e)
             {
-                return InternalError($"{e.Message} - {e.InnerException}");
+                return this.InternalError($"{e.Message} - {e.InnerException}");
             }
         }
 
         /// <summary>
-        /// Updates an author
+        ///     Updates an author
         /// </summary>
         /// <param name="id"></param>
         /// <param name="authorDTO"></param>
         /// <returns></returns>
         [HttpPut("{id}")]
+        [Authorize(Roles = "Administrator")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
@@ -143,14 +147,14 @@ namespace BookStore_API.Controllers
         {
             try
             {
-                this.logger.LogInfo($"Author update attempted");
-                
-                if (id<1 || authorDTO == null|| id!= authorDTO.Id)
+                this.logger.LogInfo("Author update attempted");
+
+                if (id < 1 || authorDTO == null || id != authorDTO.Id)
                 {
                     this.logger.LogWarn($"Empty request was submitted - id: {id}");
                     return this.BadRequest();
                 }
-                
+
                 bool isExists = await this.authorRepository.IsExists(id);
                 if (!isExists)
                 {
@@ -158,18 +162,18 @@ namespace BookStore_API.Controllers
                     return this.NotFound();
                 }
 
-                if (!ModelState.IsValid)
+                if (!this.ModelState.IsValid)
                 {
-                    this.logger.LogWarn($"Author data was incomplete");
-                    return this.BadRequest(ModelState);
+                    this.logger.LogWarn("Author data was incomplete");
+                    return this.BadRequest(this.ModelState);
                 }
 
                 var author = this.mapper.Map<Author>(authorDTO);
-                var isSuccess = await this.authorRepository.Update(author);
+                bool isSuccess = await this.authorRepository.Update(author);
 
                 if (!isSuccess)
                 {
-                    return InternalError($"Author update failed");
+                    return this.InternalError("Author update failed");
                 }
 
                 this.logger.LogInfo($"Author updated successfully:{author.Firstname}, {author.Lastname}");
@@ -178,16 +182,17 @@ namespace BookStore_API.Controllers
             }
             catch (Exception e)
             {
-                return InternalError($"{e.Message} - {e.InnerException}");
+                return this.InternalError($"{e.Message} - {e.InnerException}");
             }
         }
 
         /// <summary>
-        /// Removes an author by id
+        ///     Removes an author by id
         /// </summary>
         /// <param name="id"></param>
         /// <returns></returns>
         [HttpDelete("{id}")]
+        [Authorize(Roles = "Administrator")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
@@ -195,26 +200,26 @@ namespace BookStore_API.Controllers
         {
             try
             {
-                this.logger.LogInfo($"Author removal attempted");
-                
-                if (id<1)
+                this.logger.LogInfo("Author removal attempted");
+
+                if (id < 1)
                 {
                     this.logger.LogWarn($"Invalid id on delete- id: {id}");
                     return this.BadRequest();
                 }
-                
+
                 bool isExists = await this.authorRepository.IsExists(id);
                 if (!isExists)
                 {
                     this.logger.LogWarn($"Author with id:{id} not found");
                     return this.NotFound();
                 }
-                
-                var author = await this.authorRepository.FindById(id);
-                var isSuccess = await this.authorRepository.Delete(author);
+
+                Author author = await this.authorRepository.FindById(id);
+                bool isSuccess = await this.authorRepository.Delete(author);
                 if (!isSuccess)
                 {
-                    return InternalError($"Author removal failed");
+                    return this.InternalError("Author removal failed");
                 }
 
                 this.logger.LogInfo($"Author with id:{id} removed successfully: {author.Firstname}, {author.Lastname}");
@@ -223,14 +228,14 @@ namespace BookStore_API.Controllers
             }
             catch (Exception e)
             {
-                return InternalError($"{e.Message} - {e.InnerException}");
+                return this.InternalError($"{e.Message} - {e.InnerException}");
             }
         }
 
         private ObjectResult InternalError(string message)
         {
             this.logger.LogError(message);
-            return StatusCode(500, "something went wrong. Please contact someone.");
+            return this.StatusCode(500, "something went wrong. Please contact someone.");
         }
     }
 }

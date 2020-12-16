@@ -38,6 +38,14 @@ namespace BookStore_API.Controllers
             
             return StatusCode(500, $"something went wrong. Please contact someone.");
         }
+        
+        protected ObjectResult InternalError(string message)
+        {
+            var location = this.GetControllerActionNames();
+            this.logger.LogError($"{location}: {message}");
+            
+            return StatusCode(500, $"something went wrong. Please contact someone.");
+        }
 
         private string GetControllerActionNames()
         {

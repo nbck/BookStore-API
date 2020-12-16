@@ -36,11 +36,49 @@ namespace BookStore_API.Controllers
             this.config = config;
         }
 
+        [Route("register")]
+        [AllowAnonymous]
+        [HttpPost]
+        public async Task<IActionResult> Register([FromBody] UserDTO userDto)
+        {
+            try
+            {
+                string emailAddress = userDto.EmailAddress;
+                string password = userDto.Password;
+                this.LogInfo($"Registration attempt for  {userDto.EmailAddress}");
+                var newUser = new IdentityUser {Email = emailAddress, UserName = emailAddress};
+                var result = await this.userManager.CreateAsync(newUser, password);
+                
+                if (!result.Succeeded)
+                {
+                    foreach (var error in result.Errors)
+                    {
+                        this.LogError($"    {error.Code} {error.Description}");
+                    }
+
+                    return InternalError($"Registration failed for user {emailAddress}");
+                }
+
+                // this call was missing in trevoir's videos?
+                await userManager.AddToRoleAsync(newUser, "Customer");
+                
+
+                this.LogInfo($"{emailAddress} registered");
+                return this.Ok(new {result.Succeeded});
+            }
+            catch (Exception e)
+            {
+                return this.InternalError(e);
+            }
+            
+        }
+
         /// <summary>
         ///     User login endpoint
         /// </summary>
         /// <param name="userDTO"></param>
         /// <returns></returns>
+        [Route("login")]
         [AllowAnonymous]
         [HttpPost]
         [ProducesResponseType(StatusCodes.Status200OK)]
@@ -49,7 +87,7 @@ namespace BookStore_API.Controllers
         {
             try
             {
-                string username = userDTO.Username;
+                string username = userDTO.EmailAddress;
                 string password = userDTO.Password;
                 SignInResult result = await this.signInManager.PasswordSignInAsync(username, password, false, false);
 

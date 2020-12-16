@@ -39,7 +39,7 @@ namespace BookStore_UI.Services
 
         public async Task<bool> Login(LoginModel user)
         {
-            var request = new HttpRequestMessage(HttpMethod.Post, Endpoints.LoginEndpint);
+            var request = new HttpRequestMessage(HttpMethod.Post, Endpoints.LoginEndpoint);
             request.Content = new StringContent(JsonConvert.SerializeObject(user), Encoding.UTF8, "application/json");
 
             var client = this.clientFactory.CreateClient();
@@ -59,6 +59,7 @@ namespace BookStore_UI.Services
             // Change auth state of app
             await ((ApiAuthenticationStateProvider)this.authenticationStateProvider).LoggedIn();
 
+            // FIXME should be unnecessary because client is not used anymore
             client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("bearer", token.Token);
             
             return true;

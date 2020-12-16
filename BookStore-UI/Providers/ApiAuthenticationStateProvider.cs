@@ -41,7 +41,7 @@ namespace BookStore_UI.Providers
                 //Get claims from token and build auth user object
                 var claims = ParseClaim(tokenContent);
                 var user = new ClaimsPrincipal(new ClaimsIdentity(claims, "jwt"));
-                //return autheticated person
+                //return authenticated person
                 return new AuthenticationState(user);
             }
             catch (Exception)

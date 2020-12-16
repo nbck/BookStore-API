@@ -1,0 +1,70 @@
+﻿@page "/authors/create/"
+@attribute [Authorize(Roles = "Administrator")]
+@inject IAuthorRepository repo
+@inject NavigationManager NavManager
+
+<h3 class="card-title">Create new Author</h3>
+<hr/>
+<br/>
+
+@if (!isSuccess)
+{
+	<ErrorMessage Message="Something went wrong with the operation" />
+}
+
+<EditForm Model="Model" OnValidSubmit="CreateAuthor">
+	<DataAnnotationsValidator />
+	<ValidationSummary />
+	<div class="form-group">
+		<label for="firstname">First Name</label>
+		<InputText @bind-Value="Model.Firstname" class="form-control" id="firstname" />
+	</div>
+	<div class="form-group">
+		<label for="lastname">Last Name</label>
+		<InputText @bind-Value="Model.Lastname" class="form-control" id="lastname" />
+	</div>
+	<div class="form-group">
+		<label for="bio">Biography</label>
+		<InputText @bind-Value="Model.Bio" class="form-control" id="bio" />
+	</div>
+	<button class="btn btn-primary" type="submit">
+		<span class="oi oi-media-skip-backward"></span>
+		Create Author
+	</button>
+	<button @onclick="BackToList" class="btn btn-outline-secondary">
+		<span class="oi oi-media-skip-backward"></span>
+		Back to list
+	</button>
+</EditForm>
+
+@code {
+	private readonly Author Model = new Author();
+
+	private bool isSuccess = true;
+
+	//protected override async Task OnAfterRenderAsync(bool firstRender)
+	//{
+	//	if (firstRender)
+	//	{
+	//		int id = Convert.ToInt32(Id);
+	//		Model = await repo.Get(Endpoints.AuthorsEndpoint, id);
+
+	//		StateHasChanged();
+	//	}
+	//}
+
+	private async Task CreateAuthor()
+	{
+		isSuccess = await repo.Create(Endpoints.AuthorsEndpoint, Model);
+		if (isSuccess)
+		{
+			BackToList();
+		}
+	}
+
+	private void BackToList()
+	{
+		NavManager.NavigateTo("/authors/");
+	}
+
+}

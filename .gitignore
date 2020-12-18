@@ -9,3 +9,4 @@
 /BookStore-API.sln.DotSettings.user
 /BookStore-UI/bin/
 /BookStore-UI/obj
+/BookStore-UI/wwwroot/uploads/*

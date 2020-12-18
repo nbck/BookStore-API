@@ -52,7 +52,7 @@ namespace BookStore_API.Controllers
             }
             catch (Exception e)
             {
-                this.logger.LogError($"{location}: An error occured: {e.Message} - {e.InnerException}\n{e.StackTrace}");
+                this.logger.LogError($"{location}: An error occurred: {e.Message} - {e.InnerException}\n{e.StackTrace}");
                 return this.StatusCode(500, $"{location}: Something went wrong. Please ....\n{e.Message}\n{e.StackTrace}");
             }
         }

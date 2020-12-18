@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using BookStore_API.Contracts;
 using BookStore_API.Data;
@@ -17,13 +18,14 @@ namespace BookStore_API.Services
 
         public async Task<IList<Book>> FindAll()
         {
-            List<Book> books = await this.db.Books.ToListAsync();
+            List<Book> books = await this.db.Books.Include(b => b.Author)
+                .ToListAsync().ConfigureAwait(false);
             return books;
         }
 
         public async Task<Book> FindById(int id)
         {
-            Book book = await this.db.Books.FindAsync(id).ConfigureAwait(false);
+            Book book = await this.db.Books.Include(b => b.Author).FirstOrDefaultAsync(b => b.Id == id).ConfigureAwait(false);
             return book;
         }
 
@@ -33,7 +35,7 @@ namespace BookStore_API.Services
             return await this.Save().ConfigureAwait(false);
         }
 
-        public async Task<bool> IsExists(int id) => await this.db.Books.AnyAsync(q => q.Id == id);
+        public async Task<bool> IsExists(int id) => await this.db.Books.AnyAsync(q => q.Id == id).ConfigureAwait(false);
 
         public async Task<bool> Update(Book entity)
         {

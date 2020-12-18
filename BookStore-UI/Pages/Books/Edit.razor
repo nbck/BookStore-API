@@ -1,0 +1,171 @@
+﻿@page "/books/edit/{Id}"
+@using System.IO
+@attribute [Authorize(Roles = "Administrator")]
+@inject IBookRepository Repo
+@inject IAuthorRepository AuthorRepo
+@inject IFileUpload FileUpload
+@inject NavigationManager NavManager
+
+<h3 class="card-title">Edit Book</h3>
+<hr />
+<br />
+
+@if (string.IsNullOrWhiteSpace(Id) || int.Parse(Id) < 1)
+{
+	<ErrorMessage Message="Invalid selection. Pleae try again" />
+}
+else if (_model == null)
+{
+	<LoadingMessage Message="Loading Book details" />
+}
+else
+{
+	<EditForm Model="_model" OnValidSubmit="EditBook">
+		<DataAnnotationsValidator />
+		<ValidationSummary />
+		<div class="form-group">
+			<label for="title">Book Title</label>
+			<InputText @bind-Value="_model.Title" class="form-control" id="title" />
+		</div>
+		<div class="form-group">
+			<label for="isbn">ISBN</label>
+			<InputText @bind-Value="_model.Isbn" class="form-control" id="isbn" />
+		</div>
+		<div class="form-group">
+			<label for="price">Price</label>
+			<InputNumber @bind-Value="_model.Price" class="form-control" id="price" />
+		</div>
+		<div class="form-group">
+			<label for="author">Author</label>
+			<select @bind="_model.AuthorId" class="form-control" id="author">
+				<option value="">-- Select Author --</option>
+				@if (_authors != null)
+				{
+					foreach (var author in _authors)
+					{
+						<option value="@author.Id">@author.Firstname @author.Lastname</option>
+					}
+				}
+			</select>
+		</div>
+		<div class="form-group">
+			<label for="summary">Summary</label>
+			<InputTextArea @bind-Value="_model.Summary" class="form-control" id="summary" />
+		</div>
+		<div class="form-group">
+			<label for="bookcover">Book cover photo</label>
+			<InputFile OnChange="HandleFileSelection" id="bookcover" />
+			@if (_isInvalidFileType)
+			{
+				<ErrorMessage Message="Pleae remove the invalid file type and select a new image, or leave this field blank" />
+			}
+			@if (!string.IsNullOrWhiteSpace(_imageDataUrl))
+			{
+				<img src="@_imageDataUrl" style="height:100px;width:100px" alt=""/>
+			}
+			else if (!string.IsNullOrWhiteSpace(_model.Image))
+			{
+				<img src="uploads/@_model.Image" style="height: 100px; width: 100px" alt=""/>
+			}
+		</div>
+		<button class="btn btn-primary" type="submit">
+			<span class="oi oi-pencil"></span>
+			Submit Changes
+		</button>
+		<button @onclick="BackToList" class="btn btn-outline-secondary">
+			<span class="oi oi-media-skip-backward"></span>
+			Back to list
+		</button>
+	</EditForm>
+}
+
+
+@code {
+
+	[Parameter]
+	public string Id { get; set; }
+
+	private Book _model = new Book();
+	private IList<Author> _authors;
+	private IFileListEntry _file;
+	private string _imageDataUrl;
+	private bool _isSuccess = true;
+	private bool _isFileChanged = false;
+	private bool _isInvalidFileType;
+	private MemoryStream _msFile;
+
+	protected override async Task OnAfterRenderAsync(bool firstRender)
+	{
+		if (firstRender)
+		{
+			var id = Convert.ToInt32(Id);
+			_model = await Repo.Get(Endpoints.BooksEndpoint, id);
+			_authors = await AuthorRepo.Get(Endpoints.AuthorsEndpoint);
+			StateHasChanged();
+		}
+	}
+
+	private async Task EditBook()
+	{
+		if (!_isInvalidFileType)
+		{
+			if (_file != null)
+			{
+				var ext = Path.GetExtension(_file.Name);
+				var picId = Guid.NewGuid().ToString().Replace("-", "");
+				var picName = $"{picId}{ext}";
+
+				FileUpload.RemoveFile(_model.Image);
+				await FileUpload.UploadFile(_msFile, picName);
+				_model.Image = picName;
+			}
+			else if (_isFileChanged && _file == null)
+			{
+				FileUpload.RemoveFile(_model.Image);
+				_model.Image = string.Empty;
+			}
+
+			_isSuccess = await Repo.Update(Endpoints.BooksEndpoint, _model, _model.Id);
+			if (_isSuccess)
+			{
+				BackToList();
+			}
+		}
+	}
+
+	// copied from Create.razor
+	private async Task HandleFileSelection(IFileListEntry[] files)
+	{
+		_file = files?.FirstOrDefault();
+		_isFileChanged = true;
+		if (_file != null)
+		{
+			var name = _file.Name;
+			if (name.EndsWith(".jpg") || name.EndsWith(".png") || name.EndsWith(".jpeg"))
+			{
+				_msFile = new MemoryStream();
+				await _file.Data.CopyToAsync(_msFile);
+
+				var imageBase64Data = Convert.ToBase64String(_msFile.ToArray());
+				_imageDataUrl = $"data:image/png;base64,{imageBase64Data}";
+				_isInvalidFileType = false;
+			}
+			else
+			{
+				_isInvalidFileType = true;
+				_imageDataUrl = string.Empty;
+			}
+		}
+		else
+		{
+			_isInvalidFileType = false;
+			_imageDataUrl = string.Empty;
+		}
+	}
+
+	private void BackToList()
+	{
+		NavManager.NavigateTo("/books/");
+	}
+
+}

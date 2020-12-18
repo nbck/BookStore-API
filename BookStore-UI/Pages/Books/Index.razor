@@ -1,0 +1,80 @@
+﻿@page "/books/"
+@attribute [Authorize]
+@inject IBookRepository Repo
+
+<h3 class="card-title">Index</h3>
+<hr/>
+<br/>
+
+@if (_model == null)
+{
+	<LoadingMessage Message="Loading Books..."/>
+}
+else
+{
+	<AuthorizeView Roles="Administrator">
+		<a href="/books/create" class="btn btn-primary">
+			<span class="oi oi-plus"></span>
+			Create new Book
+		</a>
+	</AuthorizeView>
+
+	@if (!_model.Any())
+	{
+		<LoadingMessage Message="there are no book in the data store.
+Click 'Create new Book' to begin"/>
+	}
+	else
+	{
+		<table class=" table table-responsive">
+			<thead>
+			<tr>
+				<th></th>
+				<th>Title</th>
+				<th>Price</th>
+				<th>Author</th>
+			</tr>
+			</thead>
+			<tbody>
+			@foreach (var book in _model)
+			{
+				<tr>
+					<td>
+						<img src="uploads/@book.Image" style="height:50px;width: 50px" alt=""/>
+					</td>
+					<td>@book.Title</td>
+					<td>@($"{book.Price:C}")</td>
+					<td>@book.Author.Firstname @book.Author.Lastname</td>
+					<td>
+						<a href="/books/view/@book.Id" class="btn btn-primary">
+							<span class="oi oi-book"></span>
+						</a>
+						<AuthorizeView Roles="Administrator">
+							<a href="/books/edit/@book.Id" class="btn btn-warning">
+								<span class="oi oi-pencil"></span>
+							</a>
+							<a href="/books/delete/@book.Id" class="btn btn-danger">
+								<span class="oi oi-delete"></span>
+							</a>
+						</AuthorizeView>
+					</td>
+				</tr>
+			}
+			</tbody>
+		</table>
+	}
+}
+
+@code {
+	private IList<Book> _model;
+
+	protected override async Task OnAfterRenderAsync(bool firstRender)
+	{
+		if (firstRender)
+		{
+			_model = await Repo.Get(Endpoints.BooksEndpoint);
+			StateHasChanged();
+		}
+	}
+
+}

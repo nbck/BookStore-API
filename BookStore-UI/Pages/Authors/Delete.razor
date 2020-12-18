@@ -7,12 +7,12 @@
 <hr/>
 <br/>
 
-@if (isFailed)
+@if (_isFailed)
 {
 	<ErrorMessage Message="Something went wrong with the operation" />
 }
 
-@if (Model == null)
+@if (_model == null)
 {
 	<LoadingMessage Message="Loading Author for edit" />
 }
@@ -22,19 +22,19 @@ else
 		<table class=" table table-responsive">
 			<tr>
 				<td>First Name</td>
-				<td>@Model.Firstname</td>
+				<td>@_model.Firstname</td>
 			</tr>
 			<tr>
 				<td>Last Name</td>
-				<td>@Model.Lastname</td>
+				<td>@_model.Lastname</td>
 			</tr>
 			<tr>
 				<td>Biography</td>
-				<td>@Model.Bio</td>
+				<td>@_model.Bio</td>
 			</tr>
 		</table>
 		<br />
-		@if (Model.Books == null || !Model.Books.Any())
+		@if (_model.Books == null || !_model.Books.Any())
 		{
 			<div class="alert alert-dismissible alert-secondary">
 				No books for this author
@@ -47,7 +47,7 @@ else
 					Author's Books
 				</div>
 				<ul class="list-group list-group-flush">
-					@foreach (var book in Model.Books)
+					@foreach (var book in _model.Books)
 					{
 						<li class="list-group-item">@book.Title - @book.Price</li>
 					}
@@ -72,16 +72,15 @@ else
 	[Parameter]
 	public string Id { get; set; }
 
-	private Author Model;
-
-	private bool isFailed;
+	private Author _model;
+	private bool _isFailed;
 
 	protected override async Task OnAfterRenderAsync(bool firstRender)
 	{
 		if (firstRender)
 		{
 			var id = Convert.ToInt32(Id);
-			Model = await repo.Get(Endpoints.AuthorsEndpoint, id);
+			_model = await repo.Get(Endpoints.AuthorsEndpoint, id);
 
 			StateHasChanged();
 		}
@@ -89,14 +88,14 @@ else
 
 	private async Task DeleteAuthor()
 	{
-		var isSuccess = await repo.Delete(Endpoints.AuthorsEndpoint, Model.Id);
+		var isSuccess = await repo.Delete(Endpoints.AuthorsEndpoint, _model.Id);
 		if (isSuccess)
 		{
 			BackToList();
 		}
 		else
 		{
-			isFailed = true;
+			_isFailed = true;
 		}
 	}
 

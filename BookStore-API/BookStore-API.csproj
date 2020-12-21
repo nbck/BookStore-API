@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
     <TargetFramework>netcoreapp3.1</TargetFramework>
@@ -32,6 +32,10 @@
   <ItemGroup>
     <Compile Remove="Data\ApplicationDbContext - Copy.cs" />
     <Content Include="Data\ApplicationDbContext-Scaffolded.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Uploads\" />
   </ItemGroup>
 
 </Project>

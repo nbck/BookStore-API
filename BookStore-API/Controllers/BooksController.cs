@@ -6,6 +6,7 @@ using BookStore_API.Contracts;
 using BookStore_API.Data;
 using BookStore_API.DTOs;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
@@ -20,15 +21,17 @@ namespace BookStore_API.Controllers
     [ProducesResponseType(StatusCodes.Status200OK)]
     public class BooksController : ControllerBase
     {
-        private readonly IBookRepository bookRepository;
-        private readonly ILoggerService logger;
-        private readonly IMapper mapper;
+        private readonly IBookRepository _bookRepository;
+        private readonly ILoggerService _logger;
+        private readonly IMapper _mapper;
+        private readonly IWebHostEnvironment _env;
 
-        public BooksController(IBookRepository bookRepository, ILoggerService logger, IMapper mapper)
+        public BooksController(IBookRepository bookRepository, ILoggerService logger, IMapper mapper, IWebHostEnvironment env)
         {
-            this.bookRepository = bookRepository;
-            this.logger = logger;
-            this.mapper = mapper;
+            this._bookRepository = bookRepository;
+            this._logger = logger;
+            this._mapper = mapper;
+            this._env = env;
         }
 
         /// <summary>
@@ -44,15 +47,20 @@ namespace BookStore_API.Controllers
 
             try
             {
-                this.logger.LogInfo($"{location}: Attempted get all books");
-                IList<Book> books = await this.bookRepository.FindAll();
-                var response = this.mapper.Map<IList<BookDTO>>(books);
-                this.logger.LogInfo($"{location}: Successfully got all books");
+                this._logger.LogInfo($"{location}: Attempted get all books");
+                IList<Book> books = await this._bookRepository.FindAll();
+                IList<BookDTO> response = this._mapper.Map<IList<BookDTO>>(books);
+                foreach (BookDTO bookDto in response)
+                {
+                    await this.LoadImageData(bookDto);
+                }
+
+                this._logger.LogInfo($"{location}: Successfully got all books");
                 return this.Ok(response);
             }
             catch (Exception e)
             {
-                this.logger.LogError($"{location}: An error occurred: {e.Message} - {e.InnerException}\n{e.StackTrace}");
+                this._logger.LogError($"{location}: An error occurred: {e.Message} - {e.InnerException}\n{e.StackTrace}");
                 return this.StatusCode(500, $"{location}: Something went wrong. Please ....\n{e.Message}\n{e.StackTrace}");
             }
         }
@@ -71,17 +79,20 @@ namespace BookStore_API.Controllers
             string location = this.GetControllerActionNames();
             try
             {
-                this.logger.LogInfo($"{location}: Attempted to get book with id:{id}");
-                Book book = await this.bookRepository.FindById(id);
+                this._logger.LogInfo($"{location}: Attempted to get book with id:{id}");
+                Book book = await this._bookRepository.FindById(id);
                 if (book == null)
                 {
-                    this.logger.LogWarn($"{location}: Book with id:{id} was not found");
+                    this._logger.LogWarn($"{location}: Book with id:{id} was not found");
                     return this.NotFound();
                 }
 
-                var response = this.mapper.Map<BookDTO>(book);
-                this.logger.LogInfo($"{location}: successfully got book with id:{id}");
-                return this.Ok(response);
+                var bookDto = this._mapper.Map<BookDTO>(book);
+
+                await this.LoadImageData(bookDto);
+
+                this._logger.LogInfo($"{location}: successfully got book with id:{id}");
+                return this.Ok(bookDto);
             }
             catch (Exception e)
             {
@@ -104,30 +115,37 @@ namespace BookStore_API.Controllers
             string location = this.GetControllerActionNames();
             try
             {
-                this.logger.LogInfo($"{location}: book submission attempted");
+                this._logger.LogInfo($"{location}: book submission attempted");
 
                 if (bookDTO == null)
                 {
-                    this.logger.LogWarn($"{location}: Empty request was submitted");
+                    this._logger.LogWarn($"{location}: Empty request was submitted");
                     return this.BadRequest(this.ModelState);
                 }
 
                 if (!this.ModelState.IsValid)
                 {
-                    this.logger.LogWarn($"{location}: book data was incomplete");
+                    this._logger.LogWarn($"{location}: book data was incomplete");
                     return this.BadRequest(this.ModelState);
                 }
 
-                var book = this.mapper.Map<Book>(bookDTO);
-                bool isSuccess = await this.bookRepository.Create(book);
+                var book = this._mapper.Map<Book>(bookDTO);
+                bool isSuccess = await this._bookRepository.Create(book);
 
                 if (!isSuccess)
                 {
                     return this.InternalError($"{location}: Book creation failed");
                 }
 
-                this.logger.LogInfo($"{location}: Book created successfully:{book.Title}");
-                this.logger.LogInfo($"{location}: {book}");
+                if (!string.IsNullOrEmpty(bookDTO.ImageName))
+                {
+                    var imgPath = GetImagePath(bookDTO.ImageName);
+                    byte[] imageBytes = GetImageFromString(bookDTO);
+                    await System.IO.File.WriteAllBytesAsync(imgPath, imageBytes);
+                }
+
+                this._logger.LogInfo($"{location}: Book created successfully:{book.Title}");
+                this._logger.LogInfo($"{location}: {book}");
 
                 return this.Created("Create", new {book});
             }
@@ -153,36 +171,51 @@ namespace BookStore_API.Controllers
             string location = this.GetControllerActionNames();
             try
             {
-                this.logger.LogInfo($"{location}: Book update attempted");
+                this._logger.LogInfo($"{location}: Book update attempted");
 
                 if (id < 1 || bookDTO == null || id != bookDTO.Id)
                 {
-                    this.logger.LogWarn($"{location}: Empty request was submitted - id: {id}");
+                    this._logger.LogWarn($"{location}: Empty request was submitted - id: {id}");
                     return this.BadRequest();
                 }
 
-                bool isExists = await this.bookRepository.IsExists(id);
+                bool isExists = await this._bookRepository.IsExists(id);
                 if (!isExists)
                 {
-                    this.logger.LogWarn($"{location}: Book with id:{id} not found");
+                    this._logger.LogWarn($"{location}: Book with id:{id} not found");
                     return this.NotFound();
                 }
 
                 if (!this.ModelState.IsValid)
                 {
-                    this.logger.LogWarn($"{location}: Book data was incomplete");
+                    this._logger.LogWarn($"{location}: Book data was incomplete");
                     return this.BadRequest(this.ModelState);
                 }
 
-                var book = this.mapper.Map<Book>(bookDTO);
-                bool isSuccess = await this.bookRepository.Update(book);
-
+                var oldImageName = await _bookRepository.GetImageFileName(id);
+                var book = this._mapper.Map<Book>(bookDTO);
+                bool isSuccess = await this._bookRepository.Update(book);
                 if (!isSuccess)
                 {
                     return this.InternalError($"{location}: Book update failed for record with id:{id}");
                 }
 
-                this.logger.LogInfo($"{location}: Book updated successfully:{book.Id}:{book.Title}");
+                if (!bookDTO.ImageName.Equals(oldImageName))
+                {
+                    var oldImagePath = GetImagePath(oldImageName);
+                    if (System.IO.File.Exists(oldImagePath))
+                    {
+                        System.IO.File.Delete(oldImagePath);
+                    }
+                }
+
+                if (!string.IsNullOrEmpty(bookDTO.ImageName))
+                {
+                    byte[] imageBytes = GetImageFromString(bookDTO);
+                    await System.IO.File.WriteAllBytesAsync(GetImagePath(bookDTO.ImageName), imageBytes);
+                }
+
+                this._logger.LogInfo($"{location}: Book updated successfully:{book.Id}:{book.Title}");
 
                 return this.NoContent();
             }
@@ -208,29 +241,29 @@ namespace BookStore_API.Controllers
             string location = this.GetControllerActionNames();
             try
             {
-                this.logger.LogInfo($"{location}: Book removal attempted");
+                this._logger.LogInfo($"{location}: Book removal attempted");
 
                 if (id < 1)
                 {
-                    this.logger.LogWarn($"{location}: Invalid id on delete- id: {id}");
+                    this._logger.LogWarn($"{location}: Invalid id on delete- id: {id}");
                     return this.BadRequest();
                 }
 
-                bool isExists = await this.bookRepository.IsExists(id);
+                bool isExists = await this._bookRepository.IsExists(id);
                 if (!isExists)
                 {
-                    this.logger.LogWarn($"{location}: Book with id:{id} not found");
+                    this._logger.LogWarn($"{location}: Book with id:{id} not found");
                     return this.NotFound();
                 }
 
-                Book book = await this.bookRepository.FindById(id);
-                bool isSuccess = await this.bookRepository.Delete(book);
+                Book book = await this._bookRepository.FindById(id);
+                bool isSuccess = await this._bookRepository.Delete(book);
                 if (!isSuccess)
                 {
                     return this.InternalError($"{location}: Book removal failed");
                 }
 
-                this.logger.LogInfo($"{location}: Book with id:{id} removed successfully: {book.Title}");
+                this._logger.LogInfo($"{location}: Book with id:{id} removed successfully: {book.Title}");
 
                 return this.NoContent();
             }
@@ -250,8 +283,28 @@ namespace BookStore_API.Controllers
 
         private ObjectResult InternalError(string message)
         {
-            this.logger.LogError(message);
+            this._logger.LogError(message);
             return this.StatusCode(500, "something went wrong. Please contact someone.");
+        }
+
+        private string GetImagePath(string fileName) => $"{_env.ContentRootPath}\\uploads\\{fileName}";
+
+        private static byte[] GetImageFromString(BookCreateDTO bookDTO) => Convert.FromBase64String(bookDTO.ImageData);
+
+        private static byte[] GetImageFromString(BookUpdateDTO bookDTO) => Convert.FromBase64String(bookDTO.ImageData);
+
+
+        private async Task LoadImageData(BookDTO bookDto)
+        {
+            if (!string.IsNullOrEmpty(bookDto.ImageName))
+            {
+                var imgPath = this.GetImagePath(bookDto.ImageName);
+                if (System.IO.File.Exists(imgPath))
+                {
+                    byte[] imgBytes = await System.IO.File.ReadAllBytesAsync(imgPath);
+                    bookDto.ImageData = Convert.ToBase64String(imgBytes);
+                }
+            }
         }
     }
 }

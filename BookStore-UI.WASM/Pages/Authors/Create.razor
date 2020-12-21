@@ -1,0 +1,60 @@
+﻿@page "/authors/create/"
+@attribute [Authorize(Roles = "Administrator")]
+@inject IAuthorRepository repo
+@inject NavigationManager NavManager
+@inject IToastService ToastService 
+<h3 class="card-title">Create new Author</h3>
+<hr/>
+<br/>
+
+@if (!_isSuccess)
+{
+	<ErrorMessage Message="Something went wrong with the operation" />
+}
+
+<EditForm Model="_model" OnValidSubmit="CreateAuthor">
+	<DataAnnotationsValidator />
+	<ValidationSummary />
+	<div class="form-group">
+		<label for="firstname">First Name</label>
+		<InputText @bind-Value="_model.Firstname" class="form-control" id="firstname" />
+	</div>
+	<div class="form-group">
+		<label for="lastname">Last Name</label>
+		<InputText @bind-Value="_model.Lastname" class="form-control" id="lastname" />
+	</div>
+	<div class="form-group">
+		<label for="bio">Biography</label>
+		<InputText @bind-Value="_model.Bio" class="form-control" id="bio" />
+	</div>
+	<button class="btn btn-primary" type="submit">
+		<span class="oi oi-media-skip-backward"></span>
+		Create Author
+	</button>
+	<button @onclick="BackToList" class="btn btn-outline-secondary">
+		<span class="oi oi-media-skip-backward"></span>
+		Back to list
+	</button>
+</EditForm>
+
+@code {
+	private readonly Author _model = new Author();
+
+	private bool _isSuccess = true;
+
+	private async Task CreateAuthor()
+	{
+		_isSuccess = await repo.Create(Endpoints.AuthorsEndpoint, _model);
+		if (_isSuccess)
+		{
+			ToastService.ShowSuccess($"Author '{_model.Firstname} {_model.Lastname}' created successfully", "");
+			BackToList();
+		}
+	}
+
+	private void BackToList()
+	{
+		NavManager.NavigateTo("/authors/");
+	}
+
+}

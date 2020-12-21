@@ -1,0 +1,144 @@
+﻿@page "/books/create/"
+@using System.IO
+@attribute [Authorize(Roles = "Administrator")]
+@inject IAuthorRepository AuthorRepo
+@inject IBookRepository Repo
+@inject NavigationManager NavManager
+
+<h3 class="card-title">Create Book</h3>
+<hr/>
+<br/>
+
+@if (!_isSuccess)
+{
+	<ErrorMessage Message="Something went wrong with the operation"/>
+}
+
+<EditForm Model="_model" OnValidSubmit="CreateBook">
+	<DataAnnotationsValidator />
+	<ValidationSummary />
+	<div class="form-group">
+		<label for="title">Book Title</label>
+		<InputText @bind-Value="_model.Title" class="form-control" id="title" />
+	</div>
+	<div class="form-group">
+		<label for="isbn">ISBN</label>
+		<InputText @bind-Value="_model.Isbn" class="form-control" id="isbn" />
+	</div>
+	<div class="form-group">
+		<label for="price">Price</label>
+		<InputNumber @bind-Value="_model.Price" class="form-control" id="price" />
+	</div>
+	<div class="form-group">
+		<label for="author">Author</label>
+		<select @bind="_model.AuthorId" class="form-control" id="author">
+			<option value="">-- Select Author --</option>
+			@if (_authors != null)
+			{
+				foreach (var author in _authors)
+				{
+					<option value="@author.Id">@author.Firstname @author.Lastname</option>
+				}
+			}
+		</select>
+	</div>
+	<div class="form-group">
+		<label for="summary">Summary</label>
+		<InputTextArea @bind-Value="_model.Summary" class="form-control" id="summary" />
+	</div>
+	<div class="form-group">
+		<label for="bookcover">Book cover photo</label>
+		<InputFile OnChange="HandleFileSelection" id="bookcover"/>
+		@if (_isInvalidFileType)
+		{
+			<ErrorMessage Message="Pleae remove the invalid file type and select a new image, or leave this field blank" />
+		}
+		@if (!string.IsNullOrWhiteSpace(_imageDataUrl))
+		{
+			<img src="@_imageDataUrl" style="height:100px;width:100px" />
+		}
+	</div>
+	<button class="btn btn-primary" type="submit">
+		<span class="oi oi-media-skip-backward"></span>
+		Create Book
+	</button>
+	<button @onclick="BackToList" class="btn btn-outline-secondary">
+		<span class="oi oi-media-skip-backward"></span>
+		Back to list
+	</button>
+</EditForm>
+
+@code {
+	private readonly Book _model = new Book();
+	private IList<Author> _authors;
+	private IFileListEntry _file;
+	private string _imageDataUrl;
+	private bool _isSuccess = true;
+	private bool _isInvalidFileType;
+	private MemoryStream _msFile;
+
+	protected override async Task OnAfterRenderAsync(bool firstRender)
+	{
+		if (firstRender)
+		{
+			_authors = await AuthorRepo.Get(Endpoints.AuthorsEndpoint);
+
+			StateHasChanged();
+		}
+	}
+
+	private async Task CreateBook()
+	{
+		if (!_isInvalidFileType)
+		{
+			if (_file != null)
+			{
+				var ext = Path.GetExtension(_file.Name);
+				var picId = Guid.NewGuid().ToString().Replace("-", "");
+				var picName = $"{picId}{ext}";
+
+				_model.ImageName = picName;
+				_model.ImageData = Convert.ToBase64String(_msFile.ToArray());
+			}
+
+			_isSuccess = await Repo.Create(Endpoints.BooksEndpoint, _model);
+			if (_isSuccess)
+			{
+				BackToList();
+			}
+		}
+	}
+
+	private async Task HandleFileSelection(IFileListEntry[] files)
+	{
+		_file = files?.FirstOrDefault();
+		if (_file != null)
+		{
+			var extension =Path.GetExtension(_file.Name);
+			if (extension.Contains(".jpg") || extension.Contains(".png") || extension.Contains(".jpeg"))
+			{
+				_msFile = new MemoryStream();
+				await _file.Data.CopyToAsync(_msFile);
+
+				var imageBase64Data = Convert.ToBase64String(_msFile.ToArray());
+				_imageDataUrl = $"data:image/png;base64,{imageBase64Data}";
+				_isInvalidFileType = false;
+			}
+			else
+			{
+				_isInvalidFileType = true;
+				_imageDataUrl = string.Empty;
+			}
+		}
+		else
+		{
+			_isInvalidFileType = false;
+			_imageDataUrl = string.Empty;
+		}
+	}
+
+	private void BackToList()
+	{
+		NavManager.NavigateTo("/books/");
+	}
+}

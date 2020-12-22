@@ -86,12 +86,12 @@ else
 
 	private Book _model = new Book();
 	private IList<Author> _authors;
-	private IFileListEntry _file;
+	private IBrowserFile _file;
 	private string _imageDataUrl;
 	private bool _isSuccess = true;
 	private bool _isFileChanged = false;
 	private bool _isInvalidFileType;
-	private MemoryStream _msFile;
+	//private Stream _msFile;
 
 	private string GetImageSource() => $"data:image/png;base64,{_model.ImageData}";
 
@@ -117,7 +117,9 @@ else
 				var picName = $"{picId}{ext}";
 
 				_model.ImageName = picName;
-				_model.ImageData = Convert.ToBase64String(_msFile.ToArray());
+				var buffer = new byte[_file.Size];
+				await _file.OpenReadStream().ReadAsync(buffer);
+				_model.ImageData = Convert.ToBase64String(buffer);
 			}
 			else if (_isFileChanged && _file == null)
 			{
@@ -133,19 +135,21 @@ else
 	}
 
 	// copied from Create.razor
-	private async Task HandleFileSelection(IFileListEntry[] files)
+	private async Task HandleFileSelection(InputFileChangeEventArgs e)
 	{
-		_file = files?.FirstOrDefault();
-		_isFileChanged = true;
+		_file = e?.File;
 		if (_file != null)
 		{
-			var name = _file.Name;
-			if (name.EndsWith(".jpg") || name.EndsWith(".png") || name.EndsWith(".jpeg"))
+			var extension = Path.GetExtension(_file.Name);
+			if (extension.Contains(".jpg") || extension.Contains(".png") || extension.Contains(".jpeg"))
 			{
-				_msFile = new MemoryStream();
-				await _file.Data.CopyToAsync(_msFile);
+				//_msFile = _file.OpenReadStream();
+				var resizedImage = await _file.RequestImageFileAsync("image/png", 100, 100);
 
-				var imageBase64Data = Convert.ToBase64String(_msFile.ToArray());
+				var buffer = new byte[resizedImage.Size];
+				await resizedImage.OpenReadStream().ReadAsync(buffer);
+
+				var imageBase64Data = Convert.ToBase64String(buffer);
 				_imageDataUrl = $"data:image/png;base64,{imageBase64Data}";
 				_isInvalidFileType = false;
 			}

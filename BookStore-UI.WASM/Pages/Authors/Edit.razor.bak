@@ -38,7 +38,7 @@ else
 			<InputTextArea @bind-Value="Model.Bio" class="form-control" id="bio" />
 		</div>
 		<button class="btn btn-primary" type="submit">
-			<span class="oi oi-pencil"></span>
+			<span class="oi oi-pencil></span>
 			Submit changes
 		</button>
 		<button @onclick="BackToList" class="btn btn-outline-secondary">
@@ -53,7 +53,7 @@ else
 	[Parameter]
 	public string Id { get; set; }
 
-	private Author Model = new Author();
+	private Author Model;
     private bool isSuccess = true;
 
 	protected override async Task OnAfterRenderAsync(bool firstRender)

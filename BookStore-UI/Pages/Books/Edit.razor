@@ -63,9 +63,9 @@ else
 			{
 				<img src="@_imageDataUrl" style="height:100px;width:100px" alt=""/>
 			}
-			else if (!string.IsNullOrWhiteSpace(_model.Image))
+			else if (!string.IsNullOrWhiteSpace(_model.ImageName))
 			{
-				<img src="uploads/@_model.Image" style="height: 100px; width: 100px" alt=""/>
+				<img src="uploads/@_model.ImageName" style="height: 100px; width: 100px" alt=""/>
 			}
 		</div>
 		<button class="btn btn-primary" type="submit">
@@ -87,12 +87,12 @@ else
 
 	private Book _model = new Book();
 	private IList<Author> _authors;
-	private IFileListEntry _file;
+	private IBrowserFile _file;
 	private string _imageDataUrl;
 	private bool _isSuccess = true;
 	private bool _isFileChanged = false;
 	private bool _isInvalidFileType;
-	private MemoryStream _msFile;
+	private Stream _msFile;
 
 	protected override async Task OnAfterRenderAsync(bool firstRender)
 	{
@@ -115,14 +115,14 @@ else
 				var picId = Guid.NewGuid().ToString().Replace("-", "");
 				var picName = $"{picId}{ext}";
 
-				FileUpload.RemoveFile(_model.Image);
+				FileUpload.RemoveFile(_model.ImageName);
 				await FileUpload.UploadFile(_msFile, picName);
-				_model.Image = picName;
+				_model.ImageName = picName;
 			}
 			else if (_isFileChanged && _file == null)
 			{
-				FileUpload.RemoveFile(_model.Image);
-				_model.Image = string.Empty;
+				FileUpload.RemoveFile(_model.ImageName);
+				_model.ImageName = string.Empty;
 			}
 
 			_isSuccess = await Repo.Update(Endpoints.BooksEndpoint, _model, _model.Id);
@@ -134,19 +134,22 @@ else
 	}
 
 	// copied from Create.razor
-	private async Task HandleFileSelection(IFileListEntry[] files)
+	private async Task HandleFileSelection(InputFileChangeEventArgs e)
 	{
-		_file = files?.FirstOrDefault();
-		_isFileChanged = true;
+		_file = e?.File;
 		if (_file != null)
 		{
-			var name = _file.Name;
-			if (name.EndsWith(".jpg") || name.EndsWith(".png") || name.EndsWith(".jpeg"))
+			var extension = Path.GetExtension(_file.Name);
+			if (extension.Contains(".jpg") || extension.Contains(".png") || extension.Contains(".jpeg"))
 			{
-				_msFile = new MemoryStream();
-				await _file.Data.CopyToAsync(_msFile);
+				_msFile = _file.OpenReadStream();
 
-				var imageBase64Data = Convert.ToBase64String(_msFile.ToArray());
+				var resizedImage = await _file.RequestImageFileAsync("image/png", 100, 100);
+
+				var buffer = new byte[resizedImage.Size];
+				await resizedImage.OpenReadStream().ReadAsync(buffer);
+
+				var imageBase64Data = Convert.ToBase64String(buffer);
 				_imageDataUrl = $"data:image/png;base64,{imageBase64Data}";
 				_isInvalidFileType = false;
 			}

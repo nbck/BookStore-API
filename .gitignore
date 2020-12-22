@@ -12,3 +12,4 @@
 /BookStore-UI/wwwroot/uploads/*
 /BookStore-UI.WASM/obj
 /BookStore-UI.WASM/bin
+/BookStore-API/Uploads/*

@@ -72,11 +72,11 @@
 @code {
 	private readonly Book _model = new Book();
 	private IList<Author> _authors;
-	private IFileListEntry _file;
+	private IBrowserFile _file;
 	private string _imageDataUrl;
 	private bool _isSuccess = true;
 	private bool _isInvalidFileType;
-	private MemoryStream _msFile;
+	private Stream _msFile;
 
 	protected override async Task OnAfterRenderAsync(bool firstRender)
 	{
@@ -99,7 +99,7 @@
 				var picName = $"{picId}{ext}";
 
 				await FileUpload.UploadFile(_msFile, picName);
-				_model.Image = picName;
+				_model.ImageName = picName;
 			}
 
 			_isSuccess = await Repo.Create(Endpoints.BooksEndpoint, _model);
@@ -110,18 +110,21 @@
 		}
 	}
 
-	private async Task HandleFileSelection(IFileListEntry[] files)
+	private async Task HandleFileSelection(InputFileChangeEventArgs e)
 	{
-		_file = files?.FirstOrDefault();
+		_file = e?.File;
 		if (_file != null)
 		{
-			var name = _file.Name;
-			if (name.EndsWith(".jpg") || name.EndsWith(".png") || name.EndsWith(".jpeg"))
+			var extension = Path.GetExtension(_file.Name);
+			if (extension.Contains(".jpg") || extension.Contains(".png") || extension.Contains(".jpeg"))
 			{
-				_msFile = new MemoryStream();
-				await _file.Data.CopyToAsync(_msFile);
+				_msFile = _file.OpenReadStream();
+				var resizedImage = await _file.RequestImageFileAsync("image/png", 100, 100);
 
-				var imageBase64Data = Convert.ToBase64String(_msFile.ToArray());
+				var buffer = new byte[resizedImage.Size];
+				await resizedImage.OpenReadStream().ReadAsync(buffer);
+
+				var imageBase64Data = Convert.ToBase64String(buffer);
 				_imageDataUrl = $"data:image/png;base64,{imageBase64Data}";
 				_isInvalidFileType = false;
 			}

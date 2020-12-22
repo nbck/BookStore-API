@@ -27,7 +27,7 @@
 		<InputText Id="confirmpassword" type="password" class="form-control" @bind-Value="Model.ConfirmPassword" />
 		<ValidationMessage For="@(() => Model.ConfirmPassword)" />
 	</div>
-	<button type="submit" class="btn btn-primary btn-block">Submit</button>
+	<button type="submit" class="btn btn-primary">Submit</button>
 </EditForm>
 
 @code {

@@ -200,7 +200,7 @@ namespace BookStore_API.Controllers
                     return this.InternalError($"{location}: Book update failed for record with id:{id}");
                 }
 
-                if (!bookDTO.ImageName.Equals(oldImageName))
+                if (!string.IsNullOrWhiteSpace(oldImageName) && !oldImageName.Equals(bookDTO.ImageName))
                 {
                     var oldImagePath = GetImagePath(oldImageName);
                     if (System.IO.File.Exists(oldImagePath))
@@ -212,7 +212,10 @@ namespace BookStore_API.Controllers
                 if (!string.IsNullOrEmpty(bookDTO.ImageName))
                 {
                     byte[] imageBytes = GetImageFromString(bookDTO);
-                    await System.IO.File.WriteAllBytesAsync(GetImagePath(bookDTO.ImageName), imageBytes);
+                    if (imageBytes.Length > 0)
+                    {
+                        await System.IO.File.WriteAllBytesAsync(GetImagePath(bookDTO.ImageName), imageBytes);
+                    }
                 }
 
                 this._logger.LogInfo($"{location}: Book updated successfully:{book.Id}:{book.Title}");
@@ -289,9 +292,11 @@ namespace BookStore_API.Controllers
 
         private string GetImagePath(string fileName) => $"{_env.ContentRootPath}\\uploads\\{fileName}";
 
-        private static byte[] GetImageFromString(BookCreateDTO bookDTO) => Convert.FromBase64String(bookDTO.ImageData);
+        private static byte[] GetImageFromString(BookCreateDTO bookDTO) =>
+            bookDTO.ImageData == null ? new byte[] { } : Convert.FromBase64String(bookDTO.ImageData);
 
-        private static byte[] GetImageFromString(BookUpdateDTO bookDTO) => Convert.FromBase64String(bookDTO.ImageData);
+        private static byte[] GetImageFromString(BookUpdateDTO bookDTO) =>
+            bookDTO.ImageData == null ? new byte[] { } : Convert.FromBase64String(bookDTO.ImageData);
 
 
         private async Task LoadImageData(BookDTO bookDto)

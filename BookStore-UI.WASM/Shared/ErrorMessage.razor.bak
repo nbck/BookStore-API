@@ -2,8 +2,7 @@
     <h5>
         <span class="oi oi-circle-x"></span>
         @Message
-    </h5>
-</div>
+    </h5></div>
 
 @code {
 	[Parameter]

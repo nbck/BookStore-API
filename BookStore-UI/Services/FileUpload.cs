@@ -15,15 +15,21 @@ namespace BookStore_UI.Services
             _environment = environment;
         }
 
-        public async Task UploadFile(MemoryStream msFile, string picName)
+        public async Task UploadFile(Stream msFile, string picName)
         {
             try
             {
                 string path = $"{_environment.WebRootPath}\\uploads\\{picName}";
-
-                using (var fs = new FileStream(path, FileMode.Create))
+                var buffer = new byte[4 * 1096];
+                int totalRead = 0;
+                using (FileStream fs = new FileStream(path, FileMode.Create))
                 {
-                    msFile.WriteTo(fs);
+                    int bytesRead;
+                    while ((bytesRead = await msFile.ReadAsync(buffer)) != 0)
+                    {
+                        totalRead += bytesRead;
+                        await fs.WriteAsync(buffer);
+                    }
                 }
             }
             catch (Exception e)

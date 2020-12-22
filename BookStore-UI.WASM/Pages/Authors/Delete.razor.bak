@@ -1,20 +1,19 @@
 ﻿@page "/authors/delete/{Id}"
 @attribute [Authorize(Roles = "Administrator")]
-@inject IAuthorRepository Repo
+@inject IAuthorRepository repo
 @inject NavigationManager NavManager
-@inject IToastService ToastService
 
 <h3 class="card-title">Are you sure you want to delete this record?</h3>
-<hr />
-<br />
+<hr/>
+<br/>
 @if (!isSuccess)
 {
-	<ErrorMessage Message="Somewthing Went Wrong WIth the Operation" />
+    <ErrorMessage Message="Somewthing Went Wrong WIth the Operation" />
 }
 
 @if (int.Parse(Id) < 1 || string.IsNullOrWhiteSpace(Id))
 {
-	<ErrorMessage Message="Invalid Selection. Please Try Again" />
+    <ErrorMessage Message="Invalid Selection. Please Try Again" />
 }
 else if (_model == null)
 {
@@ -77,14 +76,14 @@ else
 	public string Id { get; set; }
 
 	private Author _model = new Author();
-	private bool isSuccess = true;
+    private bool isSuccess = true;
 
 	protected override async Task OnAfterRenderAsync(bool firstRender)
 	{
 		if (firstRender)
 		{
 			var id = Convert.ToInt32(Id);
-			_model = await Repo.Get(Endpoints.AuthorsEndpoint, id);
+			_model = await repo.Get(Endpoints.AuthorsEndpoint, id);
 
 			StateHasChanged();
 		}
@@ -92,11 +91,15 @@ else
 
 	private async Task DeleteAuthor()
 	{
-		isSuccess = await Repo.Delete(Endpoints.AuthorsEndpoint, _model.Id);
+		isSuccess = await repo.Delete(Endpoints.AuthorsEndpoint, _model.Id);
 		if (isSuccess)
 		{
-			ToastService.ShowError("Author Deleted Successfully", "");
+            _toastService.ShowError("Author Deleted Successfully", "");
 			BackToList();
+		}
+		else
+		{
+			_isFailed = true;
 		}
 	}
 

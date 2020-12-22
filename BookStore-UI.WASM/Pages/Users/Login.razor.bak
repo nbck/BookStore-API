@@ -2,7 +2,7 @@
 
 @inject IAuthenticationRepository authRepo;
 @inject NavigationManager navMan;
-
+@*<div class="card">*@
 <h3 class="card-title">Login</h3>
 <hr />
 <br />
@@ -25,12 +25,13 @@
 		<ValidationMessage For="@(() => Model.Password)" />
 	</div>
 
-	<button type="submit" class="btn btn-primary btn-block">Login</button>
+	<button type="submit" class="btn btn-primary">Login</button>
 </EditForm>
+@*</div>*@
 
 @code {
-	private readonly LoginModel Model = new LoginModel();
-	private bool response = true;
+	readonly LoginModel Model = new LoginModel();
+	bool response = true;
 
 	private async Task HandleLogin()
 	{

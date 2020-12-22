@@ -39,6 +39,7 @@
 
 @code {
 	private readonly Author _model = new Author();
+
 	private bool _isSuccess = true;
 
 	private async Task CreateAuthor()

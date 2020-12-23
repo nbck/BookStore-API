@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+This file is used by the publish/package process of your Web project. You can customize the behavior of this process
+by editing this MSBuild file. In order to learn more about this please visit https://go.microsoft.com/fwlink/?LinkID=208121. 
+-->
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <TimeStampOfAssociatedLegacyPublishXmlFile />
+    <EncryptedPassword>AQAAANCMnd8BFdERjHoAwE/Cl+sBAAAAvnGAnAPZDUWpP/tdzOy1yQAAAAACAAAAAAAQZgAAAAEAACAAAAAbA85GZyYPLMpCTZbX7LNwgd2AsjB9UyrteKSNCSPEuQAAAAAOgAAAAAIAACAAAABQbyu3f2N0VdugtU/RZrANiVsrbRZaPp9vLm+iWAeKQIAAAAAh6wrE0Zui+7x/cxVP6fRvRVg7+bm7A8SDxtjZTJPKnafgqvnjsjBS074hAvThA3x5Uo0/hRjHrGIVQG21nHVNJPml8QPOxTUVg9jx2oFWPnRPxX6U5zvTwyl4DMPAhGxQvsWD7VH1QxZD5ms4LWyuSRUda9SjNJtkfHUTE1ndoEAAAADWmfp0YvcewNbaYyqqsEdy0z535xjQjsEQCxH3Ib3EgQ8ELgGl8SD0sJSeA+AjtDV8tQk8MyBCgOzr7jbYQWhb</EncryptedPassword>
+  </PropertyGroup>
+  <ItemGroup>
+    <EFMigrations Include="BookStore_API.Data.ApplicationDbContext">
+      <Value>Data Source=tcp:bookstore-apidbserver.database.windows.net,1433%3bInitial Catalog=BookStore-API_db%3bUser Id=nils%40bookstore-apidbserver%3bPassword=VaJXyLE3</Value>
+    </EFMigrations>
+  </ItemGroup>
+</Project>

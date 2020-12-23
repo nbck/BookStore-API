@@ -11,30 +11,30 @@ namespace BookStore_UI.WASM.Providers
 {
     public class ApiAuthenticationStateProvider : AuthenticationStateProvider
     {
-        private readonly ILocalStorageService localStorageService;
-        private readonly JwtSecurityTokenHandler tokenHandler;
+        private readonly ILocalStorageService _localStorageService;
+        private readonly JwtSecurityTokenHandler _tokenHandler = new JwtSecurityTokenHandler();
 
-        public ApiAuthenticationStateProvider(ILocalStorageService localStorageService, JwtSecurityTokenHandler tokenHandler)
+        public ApiAuthenticationStateProvider(ILocalStorageService localStorageService)
         {
-            this.localStorageService = localStorageService;
-            this.tokenHandler = tokenHandler;
+            this._localStorageService = localStorageService;
+            this._tokenHandler = _tokenHandler;
         }
 
         public async override Task<AuthenticationState> GetAuthenticationStateAsync()
         {
             try
             {
-                var savedToken = await this.localStorageService.GetItemAsync<string>("authToken");
+                var savedToken = await this._localStorageService.GetItemAsync<string>("authToken");
                 if (string.IsNullOrWhiteSpace(savedToken))
                 {
                     return new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity()));
                 }
 
-                var tokenContent = this.tokenHandler.ReadJwtToken(savedToken);
+                var tokenContent = this._tokenHandler.ReadJwtToken(savedToken);
                 var expiry = tokenContent.ValidTo;
                 if (expiry < DateTime.Now)
                 {
-                    await this.localStorageService.RemoveItemAsync("authToken");
+                    await this._localStorageService.RemoveItemAsync("authToken");
                     return new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity()));
                 }
                 
@@ -52,8 +52,8 @@ namespace BookStore_UI.WASM.Providers
 
         public async Task LoggedIn()
         {
-            var savedToken = await this.localStorageService.GetItemAsync<string>("authToken");
-            var tokenContent = this.tokenHandler.ReadJwtToken(savedToken);
+            var savedToken = await this._localStorageService.GetItemAsync<string>("authToken");
+            var tokenContent = this._tokenHandler.ReadJwtToken(savedToken);
             var claims = ParseClaim(tokenContent);
             var user = new ClaimsPrincipal(new ClaimsIdentity(claims, "jwt"));
             var authState = Task.FromResult(new AuthenticationState(user));
